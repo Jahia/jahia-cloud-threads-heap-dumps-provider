@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<content xmlns:j="http://www.jahia.org/jahia/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0">
+    <modules jcr:primaryType="jnt:modules">
+        <jahia-cloud-threads-heap-dumps-provider j:dependencies="default external-provider serverSettings"
+                                                 j:modulePriority="0"
+                                                 j:moduleType="system"
+                                                 j:title="Jahia Cloud - Thread and heap dumps provider"
+                                                 jcr:primaryType="jnt:module">
+                
+            <portlets jcr:primaryType="jnt:portletFolder"/>
+            <files jcr:primaryType="jnt:folder"/>
+            <contents jcr:primaryType="jnt:contentFolder">
+                <jahia-cloud-dump-mount-point-factory j:mountPointType="jnt:jahiaCloudDumpMountPoint"
+                                                      j:templateName="jahia-cloud-dump-factory"
+                                                      jcr:primaryType="jnt:jahiaCloudDumpMountPointFactoryPage">
+                    <j:translation_en jcr:language="en"
+                                      jcr:mixinTypes="mix:title"
+                                      jcr:primaryType="jnt:translation"
+                                      jcr:title="Jahia Cloud Dump mount point factory"/>
+                </jahia-cloud-dump-mount-point-factory>
+            </contents>
+            <templates jcr:primaryType="jnt:templatesFolder">
+                <files jcr:primaryType="jnt:folder"/>
+                <contents jcr:primaryType="jnt:contentFolder"/>
+                <base j:hiddenTemplate="false"
+                      j:view="serverSettings"
+                      jcr:primaryType="jnt:template">
+                    <j:translation_en jcr:language="en"
+                                      jcr:mixinTypes="mix:title"
+                                      jcr:primaryType="jnt:translation"
+                                      jcr:title="base"/>
+                    <jahia-cloud-dump-factory j:applyOn="jnt:jahiaCloudDumpMountPointFactoryPage"
+                                              j:defaultTemplate="true"
+                                              j:hiddenTemplate="false"
+                                              j:requiredPermissionNames="adminMountPoints"
+                                              jcr:primaryType="jnt:contentTemplate">
+                        <j:translation_en jcr:language="en"
+                                          jcr:mixinTypes="mix:title"
+                                          jcr:primaryType="jnt:translation"
+                                          jcr:title="jahia-cloud-dump-factory"/>
+                        <pagecontent jcr:primaryType="jnt:contentList">
+                            <jahia-cloud-dump-mount-point-factory-form jcr:primaryType="jnt:jahiaCloudDumpPointFactoryForm">
+                                <j:translation_en jcr:language="en"
+                                                  jcr:mixinTypes="mix:title"
+                                                  jcr:primaryType="jnt:translation"
+                                                  jcr:title="jahia cloud dump mount point factory form"/>
+                            </jahia-cloud-dump-mount-point-factory-form>
+                        </pagecontent>
+                    </jahia-cloud-dump-factory>
+                </base>
+                <base-jahia-anthracite j:hiddenTemplate="false"
+                                       j:view="settingsBootstrap3GoogleMaterialStyle"
+                                       jcr:primaryType="jnt:template">
+                    <j:translation_en jcr:language="en"
+                                      jcr:mixinTypes="mix:title"
+                                      jcr:primaryType="jnt:translation"
+                                      jcr:title="base-jahia-anthracite"/>
+                    <jahia-cloud-dump-factory-jahia-anthracite j:applyOn="jnt:jahiaCloudDumpMountPointFactoryPage"
+                                                               j:defaultTemplate="true"
+                                                               j:hiddenTemplate="false"
+                                                               j:requiredPermissionNames="adminMountPoints"
+                                                               j:view="settingsBootstrap3GoogleMaterialStyle"
+                                                               jcr:primaryType="jnt:contentTemplate">
+                        <j:translation_en jcr:language="en"
+                                          jcr:mixinTypes="mix:title"
+                                          jcr:primaryType="jnt:translation"
+                                          jcr:title="jahia-cloud-dump-factory-jahia-anthracite"/>
+                        <pagecontent jcr:primaryType="jnt:contentList">
+                            <jahia-cloud-dump-mount-point-factory-form-jahia-anthracite j:view="settingsBootstrap3GoogleMaterialStyle"
+                                                                                        jcr:mixinTypes="jmix:renderable"
+                                                                                        jcr:primaryType="jnt:jahiaCloudDumpPointFactoryForm">
+                                <j:translation_en jcr:language="en"
+                                                  jcr:mixinTypes="mix:title"
+                                                  jcr:primaryType="jnt:translation"
+                                                  jcr:title="jahia cloud dump mount point factory form"/>
+                            </jahia-cloud-dump-mount-point-factory-form-jahia-anthracite>
+                        </pagecontent>
+                    </jahia-cloud-dump-factory-jahia-anthracite>
+                </base-jahia-anthracite>
+            </templates>
+                
+        </jahia-cloud-threads-heap-dumps-provider>
+    </modules>
+</content>
