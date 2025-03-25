@@ -8,7 +8,7 @@
   </parent>
   <groupId>org.jahia.community</groupId>
   <artifactId>jahia-cloud-threads-heap-dumps-provider</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.2-SNAPSHOT</version>
   <packaging>bundle</packaging>
   <name>Jahia Cloud - Threads and heap dumps provider</name>
   <description>Give access to the threads and heap dumps generated automatically on Jahia Cloud</description>
@@ -16,7 +16,7 @@
     <connection>scm:git:git@github.com:Jahia/jahia-cloud-threads-heap-dumps-provider.git</connection>
     <developerConnection>scm:git:git@github.com:Jahia/jahia-cloud-threads-heap-dumps-provider.git</developerConnection>
     <url>scm:git:git@github.com:Jahia/jahia-cloud-threads-heap-dumps-provider.git</url>
-    <tag>1_0_1</tag>
+    <tag>HEAD</tag>
   </scm>
   <properties>
     <export-package>org.jahia.community.external.cloud,org.jahia.community.external.cloud.factory</export-package>
