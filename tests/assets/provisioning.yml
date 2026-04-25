@@ -1,0 +1,9 @@
+- karafCommand: "log:log 'START - provisioning jahia-cloud-threads-heap-dumps-provider'"
+
+- karafCommand: "log:log 'Install jahia-cloud-threads-heap-dumps-provider dependencies'"
+- installBundle:
+      - 'mvn:org.jahia.modules/graphql-dxm-provider/LATEST'
+  autoStart: true
+  uninstallPreviousVersion: false
+
+- karafCommand: "log:log 'END - provisioning jahia-cloud-threads-heap-dumps-provider'"

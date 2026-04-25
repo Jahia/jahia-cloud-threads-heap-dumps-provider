@@ -1,0 +1,3 @@
+mutation saveSettings($mountPath: String!) {
+    cloudDumpSaveSettings(mountPath: $mountPath)
+}
