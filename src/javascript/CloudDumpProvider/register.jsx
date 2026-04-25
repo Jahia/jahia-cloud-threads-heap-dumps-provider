@@ -1,6 +1,5 @@
 import {registry} from '@jahia/ui-extender';
 import React from 'react';
-import {Text} from '@jahia/moonstone';
 import CloudDumpProviderAdmin from './CloudDumpProvider';
 
 export default () => {

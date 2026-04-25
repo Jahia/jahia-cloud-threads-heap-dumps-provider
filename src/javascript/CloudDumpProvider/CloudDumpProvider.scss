@@ -87,6 +87,13 @@
     align-items: flex-start;
 }
 
+.cdp_buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    align-items: center;
+}
+
 .cdp_alert {
     padding: 10px 14px;
     border-radius: 4px;

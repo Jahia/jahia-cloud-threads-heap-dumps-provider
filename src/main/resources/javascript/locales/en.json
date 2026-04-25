@@ -9,6 +9,7 @@
     "mountPath": "JCR mount path",
     "mountPathHint": "JCR path under which dump files are accessible. Changes take effect immediately.",
     "save": "Save settings",
+    "browseInJContent": "Browse in jContent",
     "saveSuccess": "Settings saved successfully.",
     "saveError": "An error occurred while saving settings."
   }
