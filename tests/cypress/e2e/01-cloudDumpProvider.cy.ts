@@ -1,7 +1,7 @@
 import {DocumentNode} from 'graphql';
 
 describe('Jahia Cloud Dump Provider', () => {
-    const configPath = '/jahia/administration/cloudDumpProvider';
+    const configPath = '/jahia/administration/cloudDump';
     const defaultMountPath = '/sites/systemsite/files/cloud-dumps';
     const hardcodedDumpPath = '/var/tmp/cloud';
 
@@ -79,7 +79,7 @@ describe('Jahia Cloud Dump Provider', () => {
             });
         });
 
-        it('mount point node exists in JCR', () => {
+        it('mount point root exists as a jnt:folder', () => {
             cy.login();
             cy.apollo({query: getDumpFile, variables: {path: defaultMountPath}})
                 .its('data.jcr.nodeByPath')
@@ -87,6 +87,60 @@ describe('Jahia Cloud Dump Provider', () => {
                     expect(node).to.not.be.null;
                     expect(node.primaryNodeType.name).to.eq('jnt:folder');
                 });
+        });
+
+        it('heap sub-folder exists as a jnt:folder', () => {
+            cy.login();
+            cy.apollo({query: getDumpFile, variables: {path: `${defaultMountPath}/heap`}})
+                .its('data.jcr.nodeByPath')
+                .should(node => {
+                    expect(node).to.not.be.null;
+                    expect(node.primaryNodeType.name).to.eq('jnt:folder');
+                });
+        });
+
+        it('heapdump.hprof exists as a jnt:file', () => {
+            cy.login();
+            cy.apollo({query: getDumpFile, variables: {path: `${defaultMountPath}/heap/heapdump.hprof`}})
+                .its('data.jcr.nodeByPath')
+                .should(node => {
+                    expect(node).to.not.be.null;
+                    expect(node.primaryNodeType.name).to.eq('jnt:file');
+                });
+        });
+
+        it('heapdump.hprof has a binary MIME type', () => {
+            cy.login();
+            cy.apollo({query: getDumpFile, variables: {path: `${defaultMountPath}/heap/heapdump.hprof`}})
+                .its('data.jcr.nodeByPath.descendant.property.value')
+                .should('not.be.null');
+        });
+
+        it('thread sub-folder exists as a jnt:folder', () => {
+            cy.login();
+            cy.apollo({query: getDumpFile, variables: {path: `${defaultMountPath}/thread`}})
+                .its('data.jcr.nodeByPath')
+                .should(node => {
+                    expect(node).to.not.be.null;
+                    expect(node.primaryNodeType.name).to.eq('jnt:folder');
+                });
+        });
+
+        it('thread_dump.txt exists as a jnt:file', () => {
+            cy.login();
+            cy.apollo({query: getDumpFile, variables: {path: `${defaultMountPath}/thread/thread_dump.txt`}})
+                .its('data.jcr.nodeByPath')
+                .should(node => {
+                    expect(node).to.not.be.null;
+                    expect(node.primaryNodeType.name).to.eq('jnt:file');
+                });
+        });
+
+        it('thread_dump.txt has a text MIME type', () => {
+            cy.login();
+            cy.apollo({query: getDumpFile, variables: {path: `${defaultMountPath}/thread/thread_dump.txt`}})
+                .its('data.jcr.nodeByPath.descendant.property.value')
+                .should('match', /^text\//);
         });
     });
 

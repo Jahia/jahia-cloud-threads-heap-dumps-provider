@@ -6,4 +6,7 @@
   autoStart: true
   uninstallPreviousVersion: false
 
+- karafCommand: "log:log 'Create cloud dump test directories and files'"
+- executeScript: "setup-cloud-dumps.groovy"
+
 - karafCommand: "log:log 'END - provisioning jahia-cloud-threads-heap-dumps-provider'"
