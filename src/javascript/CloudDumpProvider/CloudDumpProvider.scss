@@ -1,0 +1,108 @@
+.cdp_loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 48px;
+}
+
+.cdp_container {
+    padding: 24px 32px;
+    max-width: 90%;
+}
+
+.cdp_formSection {
+    max-width: 90%;
+}
+
+.cdp_header {
+    margin-bottom: 8px;
+
+    h2 {
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0;
+    }
+}
+
+.cdp_description {
+    margin-bottom: 28px;
+    color: #666;
+}
+
+.cdp_form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 28px;
+}
+
+.cdp_fieldGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cdp_label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+}
+
+.cdp_input {
+    width: 90%;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+
+    &:focus {
+        outline: none;
+        border-color: #0077cc;
+    }
+}
+
+.cdp_readOnly {
+    font-family: monospace;
+    font-size: 13px;
+    color: #555;
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 6px 10px;
+    width: 90%;
+    box-sizing: border-box;
+    display: block;
+}
+
+.cdp_hint {
+    font-size: 12px;
+    color: #888;
+    font-style: italic;
+}
+
+.cdp_actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.cdp_alert {
+    padding: 10px 14px;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+
+    &--success {
+        background-color: #e8f5e9;
+        border: 1px solid #a5d6a7;
+        color: #2e7d32;
+    }
+
+    &--error {
+        background-color: #fdecea;
+        border: 1px solid #ef9a9a;
+        color: #c62828;
+    }
+}

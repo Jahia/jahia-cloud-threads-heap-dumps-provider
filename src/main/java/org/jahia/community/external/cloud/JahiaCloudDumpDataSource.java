@@ -122,11 +122,10 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
             String unescapedPath = JCRContentUtils.unescapeLocalNodeName(path);
             if (path.endsWith(JCR_CONTENT_SUFFIX)) {
                 FileObject fileObject = getFile(StringUtils.substringBeforeLast(unescapedPath, JCR_CONTENT_SUFFIX));
-                FileContent content = fileObject.getContent();
-                if (!fileObject.exists()) {
+                if (!fileObject.exists() || fileObject.getType() == FileType.FOLDER) {
                     throw new PathNotFoundException(path);
                 }
-                return getFileContent(content);
+                return getFileContent(fileObject.getContent());
             } else {
                 FileObject fileObject = getFile(unescapedPath);
                 if (!fileObject.exists()) {
@@ -134,14 +133,16 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
                 }
                 return getFile(fileObject);
             }
-
         } catch (FileSystemException ex) {
             throw new PathNotFoundException("File system exception while trying to retrieve " + path, ex);
         }
     }
 
     public FileObject getFile(String path) throws FileSystemException {
-        return FileSystem.SEPARATOR.equals(path) ? root : root.resolveFile(path.charAt(0) == FileSystem.SEPARATOR_CHAR ? path.substring(1) : path);
+        if (path == null || path.isEmpty() || FileSystem.SEPARATOR.equals(path)) {
+            return root;
+        }
+        return root.resolveFile(path.charAt(0) == FileSystem.SEPARATOR_CHAR ? path.substring(1) : path);
     }
 
     @Override
@@ -149,46 +150,42 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         try {
             if (!path.endsWith(JCR_CONTENT_SUFFIX)) {
                 final FileObject fileObject = getFile(path);
-                if (null == fileObject.getType()) {
-                    if (fileObject.exists()) {
-                        LOGGER.warn(UNKNOWN_FILE_TYPE,
-                                fileObject, fileObject.getType());
-                    } else {
-                        throw new PathNotFoundException(path);
-                    }
-                } else {
-                    switch (fileObject.getType()) {
-                        case FILE:
-                            return new ArrayList<>(JCR_CONTENT_LIST);
-                        case FOLDER:
-                            final FileObject[] files = fileObject.getChildren();
-                            if (files.length > 0) {
-                                final List<String> children = new LinkedList<>();
-                                for (FileObject object : files) {
-                                    if (getSupportedNodeTypes().contains(getDataType(object))) {
-                                        children.add(JCRContentUtils.escapeLocalNodeName(object.getName().getBaseName()));
-                                    }
-                                }
-                                return children;
-                            } else {
-                                return Collections.emptyList();
-                            }
-                        default:
-                            if (fileObject.exists()) {
-                                LOGGER.warn(UNKNOWN_FILE_TYPE,
-                                        fileObject, fileObject.getType());
-                            } else {
-                                throw new PathNotFoundException(path);
-                            }
-                            break;
-                    }
-                }
+                return getChildNames(path, fileObject);
             }
         } catch (FileSystemException e) {
             LOGGER.error("Cannot get node children", e);
         }
-
         return Collections.emptyList();
+    }
+
+    private List<String> getChildNames(String path, FileObject fileObject) throws FileSystemException {
+        if (fileObject.getType() == null) {
+            warnOrThrowNotFound(path, fileObject);
+            return Collections.emptyList();
+        }
+        switch (fileObject.getType()) {
+            case FILE:
+                return new ArrayList<>(JCR_CONTENT_LIST);
+            case FOLDER:
+                return listFolderChildNames(fileObject);
+            default:
+                warnOrThrowNotFound(path, fileObject);
+                return Collections.emptyList();
+        }
+    }
+
+    private List<String> listFolderChildNames(FileObject folder) throws FileSystemException {
+        final FileObject[] files = folder.getChildren();
+        if (files.length == 0) {
+            return Collections.emptyList();
+        }
+        final List<String> children = new LinkedList<>();
+        for (FileObject object : files) {
+            if (getSupportedNodeTypes().contains(getDataType(object))) {
+                children.add(JCRContentUtils.escapeLocalNodeName(object.getName().getBaseName()));
+            }
+        }
+        return children;
     }
 
     @Override
@@ -196,52 +193,55 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         try {
             if (!path.endsWith(JCR_CONTENT_SUFFIX)) {
                 final FileObject fileObject = getFile(path);
-                if (null == fileObject.getType()) {
-                    if (fileObject.exists()) {
-                        LOGGER.warn(UNKNOWN_FILE_TYPE,
-                                fileObject, fileObject.getType());
-                    } else {
-                        throw new PathNotFoundException(path);
-                    }
-                } else {
-                    switch (fileObject.getType()) {
-                        case FILE:
-                            final FileContent content = fileObject.getContent();
-                            return Collections.singletonList(getFileContent(content));
-                        case FOLDER:
-                            //in case of folder, refresh because it could be changed external
-                            fileObject.refresh();
-                            final FileObject[] files = fileObject.getChildren();
-                            if (files.length > 0) {
-                                final List<ExternalData> children = new LinkedList<>();
-                                for (FileObject object : files) {
-                                    if (getSupportedNodeTypes().contains(getDataType(object))) {
-                                        children.add(getFile(object));
-                                        if (object.getType() == FileType.FILE) {
-                                            children.add(getFileContent(object.getContent()));
-                                        }
-                                    }
-                                }
-                                return children;
-                            } else {
-                                return Collections.emptyList();
-                            }
-                        default:
-                            if (fileObject.exists()) {
-                                LOGGER.warn(UNKNOWN_FILE_TYPE,
-                                        fileObject, fileObject.getType());
-                            } else {
-                                throw new PathNotFoundException(path);
-                            }
-                            break;
-                    }
-                }
+                return getChildExternalData(path, fileObject);
             }
         } catch (FileSystemException e) {
             LOGGER.error("Cannot get node children", e);
         }
-
         return Collections.emptyList();
+    }
+
+    private List<ExternalData> getChildExternalData(String path, FileObject fileObject) throws FileSystemException {
+        if (fileObject.getType() == null) {
+            warnOrThrowNotFound(path, fileObject);
+            return Collections.emptyList();
+        }
+        switch (fileObject.getType()) {
+            case FILE:
+                return Collections.singletonList(getFileContent(fileObject.getContent()));
+            case FOLDER:
+                return listFolderChildren(fileObject);
+            default:
+                warnOrThrowNotFound(path, fileObject);
+                return Collections.emptyList();
+        }
+    }
+
+    private List<ExternalData> listFolderChildren(FileObject folder) throws FileSystemException {
+        // refresh because folder contents may change externally
+        folder.refresh();
+        final FileObject[] files = folder.getChildren();
+        if (files.length == 0) {
+            return Collections.emptyList();
+        }
+        final List<ExternalData> children = new LinkedList<>();
+        for (FileObject object : files) {
+            if (getSupportedNodeTypes().contains(getDataType(object))) {
+                children.add(getFile(object));
+                if (object.getType() == FileType.FILE) {
+                    children.add(getFileContent(object.getContent()));
+                }
+            }
+        }
+        return children;
+    }
+
+    private void warnOrThrowNotFound(String path, FileObject fileObject) throws FileSystemException {
+        if (fileObject.exists()) {
+            LOGGER.warn(UNKNOWN_FILE_TYPE, fileObject, fileObject.getType());
+        } else {
+            throw new FileSystemException(path);
+        }
     }
 
     @Override
@@ -272,7 +272,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         }
         return privileges;
     }
-    
+
     private ExternalData getFile(FileObject fileObject) throws FileSystemException {
         final String type = getDataType(fileObject);
 
@@ -288,12 +288,10 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
                 properties.put(Constants.JCR_CREATED, timestamp);
                 properties.put(Constants.JCR_LASTMODIFIED, timestamp);
             }
-            // Add jmix:image mixin in case of the file is a picture.
             if (content.getContentInfo() != null && content.getContentInfo().getContentType() != null
                     && fileObject.getContent().getContentInfo().getContentType().matches("image/(.*)")) {
                 addedMixins.add(Constants.JAHIAMIX_IMAGE);
             }
-
         }
 
         String path = JCRContentUtils.escapeNodePath(fileObject.getName().getPath().substring(rootPath.length()));
