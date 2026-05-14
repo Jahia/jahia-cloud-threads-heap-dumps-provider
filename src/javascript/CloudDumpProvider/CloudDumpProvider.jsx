@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {useMutation, useQuery} from '@apollo/client';
 import {useTranslation} from 'react-i18next';
 import {Button, Loader, Typography} from '@jahia/moonstone';
@@ -20,6 +20,11 @@ export const CloudDumpProviderAdmin = () => {
     const {t} = useTranslation('jahia-cloud-threads-heap-dumps-provider');
     const [saveStatus, setSaveStatus] = useState(null);
     const [mountPath, setMountPath] = useState('');
+    const saveLiveRef = useRef(null);
+
+    useEffect(() => {
+        document.title = `${t('label.title')} — Jahia Administration`;
+    }, [t]);
 
     const {loading} = useQuery(GET_SETTINGS, {
         fetchPolicy: 'network-only',
@@ -46,11 +51,17 @@ export const CloudDumpProviderAdmin = () => {
             console.error('Failed to save settings:', err);
             setSaveStatus('error');
         }
+
+        setTimeout(() => saveLiveRef.current?.focus(), 50);
     };
+
+    const saveLiveMsg = saveStatus === 'success' ? t('label.saveSuccess') :
+        saveStatus === 'error' ? t('label.saveError') : '';
 
     if (loading) {
         return (
-            <div className={styles.cdp_loading}>
+            <div className={styles.cdp_loading} role="status">
+                <span className={styles.cdp_sr_only}>{t('label.loading')}</span>
                 <Loader size="big"/>
             </div>
         );
@@ -58,6 +69,18 @@ export const CloudDumpProviderAdmin = () => {
 
     return (
         <div className={styles.cdp_container}>
+            {/* Persistent live region — always in DOM so AT registers it before status changes */}
+            <div
+                ref={saveLiveRef}
+                tabIndex={-1}
+                role={saveStatus === 'error' ? 'alert' : 'status'}
+                aria-live={saveStatus === 'error' ? 'assertive' : 'polite'}
+                aria-atomic="true"
+                className={styles.cdp_sr_only}
+            >
+                {saveLiveMsg}
+            </div>
+
             <div className={styles.cdp_formSection}>
                 <div className={styles.cdp_header}>
                     <h2>{t('label.title')}</h2>
@@ -68,11 +91,12 @@ export const CloudDumpProviderAdmin = () => {
                 </div>
 
                 <div className={styles.cdp_form}>
-                    <div className={styles.cdp_fieldGroup}>
-                        <label className={styles.cdp_label}>{t('label.dumpPath')}</label>
-                        <span className={styles.cdp_readOnly}>{dumpPath}</span>
-                        <span className={styles.cdp_hint}>{t('label.dumpPathHint')}</span>
-                    </div>
+                    {/* Read-only field: use dl/dt/dd for label/value association without htmlFor */}
+                    <dl className={styles.cdp_fieldGroup}>
+                        <dt className={styles.cdp_label}>{t('label.dumpPath')}</dt>
+                        <dd className={styles.cdp_readOnly}>{dumpPath}</dd>
+                        <dd className={styles.cdp_hint}>{t('label.dumpPathHint')}</dd>
+                    </dl>
 
                     <div className={styles.cdp_fieldGroup}>
                         <label className={styles.cdp_label} htmlFor="cdp-mount-path">
@@ -83,6 +107,7 @@ export const CloudDumpProviderAdmin = () => {
                             id="cdp-mount-path"
                             className={styles.cdp_input}
                             value={mountPath}
+                            aria-describedby="cdp-mount-hint"
                             onChange={e => {
                                 setMountPath(e.target.value);
                                 setSaveStatus(null);
@@ -93,19 +118,19 @@ export const CloudDumpProviderAdmin = () => {
                                 }
                             }}
                         />
-                        <span className={styles.cdp_hint}>{t('label.mountPathHint')}</span>
+                        <span id="cdp-mount-hint" className={styles.cdp_hint}>{t('label.mountPathHint')}</span>
                     </div>
                 </div>
 
                 <div className={styles.cdp_actions}>
                     {saveStatus === 'success' && (
-                        <div className={`${styles.cdp_alert} ${styles['cdp_alert--success']}`}>
-                            {t('label.saveSuccess')}
+                        <div aria-hidden="true" className={`${styles.cdp_alert} ${styles['cdp_alert--success']}`}>
+                            <span className={styles.cdp_alertIcon}>✓</span> {t('label.saveSuccess')}
                         </div>
                     )}
                     {saveStatus === 'error' && (
-                        <div className={`${styles.cdp_alert} ${styles['cdp_alert--error']}`}>
-                            {t('label.saveError')}
+                        <div aria-hidden="true" className={`${styles.cdp_alert} ${styles['cdp_alert--error']}`}>
+                            <span className={styles.cdp_alertIcon}>✕</span> {t('label.saveError')}
                         </div>
                     )}
                     <div className={styles.cdp_buttons}>
@@ -121,6 +146,7 @@ export const CloudDumpProviderAdmin = () => {
                             isDisabled={!jContentUrl}
                             onClick={() => window.open(jContentUrl, '_blank')}
                         />
+                        <span className={styles.cdp_sr_only}>{t('label.opensInNewTab')}</span>
                     </div>
                 </div>
             </div>
