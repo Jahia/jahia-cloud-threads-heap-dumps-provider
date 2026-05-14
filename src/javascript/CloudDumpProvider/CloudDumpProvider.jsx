@@ -20,7 +20,8 @@ export const CloudDumpProviderAdmin = () => {
     const {t} = useTranslation('jahia-cloud-threads-heap-dumps-provider');
     const [saveStatus, setSaveStatus] = useState(null);
     const [mountPath, setMountPath] = useState('');
-    const saveLiveRef = useRef(null);
+    const saveBtnRef = useRef(null);
+    const mountPathRef = useRef(null);
 
     useEffect(() => {
         document.title = `${t('label.title')} — Jahia Administration`;
@@ -46,13 +47,20 @@ export const CloudDumpProviderAdmin = () => {
         setSaveStatus(null);
         try {
             const result = await saveSettings({variables: {mountPath}});
-            setSaveStatus(result.data?.cloudDumpSaveSettings ? 'success' : 'error');
+            const status = result.data?.cloudDumpSaveSettings ? 'success' : 'error';
+            setSaveStatus(status);
+            setTimeout(() => {
+                if (status === 'success') {
+                    saveBtnRef.current?.focus();
+                } else {
+                    mountPathRef.current?.focus();
+                }
+            }, 50);
         } catch (err) {
             console.error('Failed to save settings:', err);
             setSaveStatus('error');
+            setTimeout(() => mountPathRef.current?.focus(), 50);
         }
-
-        setTimeout(() => saveLiveRef.current?.focus(), 50);
     };
 
     const saveLiveMsg = saveStatus === 'success' ? t('label.saveSuccess') :
@@ -69,16 +77,12 @@ export const CloudDumpProviderAdmin = () => {
 
     return (
         <div className={styles.cdp_container}>
-            {/* Persistent live region — always in DOM so AT registers it before status changes */}
-            <div
-                ref={saveLiveRef}
-                tabIndex={-1}
-                role={saveStatus === 'error' ? 'alert' : 'status'}
-                aria-live={saveStatus === 'error' ? 'assertive' : 'polite'}
-                aria-atomic="true"
-                className={styles.cdp_sr_only}
-            >
-                {saveLiveMsg}
+            {/* Separate always-in-DOM live regions so AT never sees role mutations */}
+            <div role="status" aria-live="polite" aria-atomic="true" className={styles.cdp_sr_only}>
+                {saveStatus === 'success' ? saveLiveMsg : ''}
+            </div>
+            <div role="alert" aria-live="assertive" aria-atomic="true" className={styles.cdp_sr_only}>
+                {saveStatus === 'error' ? saveLiveMsg : ''}
             </div>
 
             <div className={styles.cdp_formSection}>
@@ -103,11 +107,16 @@ export const CloudDumpProviderAdmin = () => {
                             {t('label.mountPath')}
                         </label>
                         <input
+                            ref={mountPathRef}
                             type="text"
                             id="cdp-mount-path"
                             className={styles.cdp_input}
                             value={mountPath}
-                            aria-describedby="cdp-mount-hint"
+                            required
+                            aria-required="true"
+                            aria-invalid={saveStatus === 'error' ? 'true' : undefined}
+                            aria-describedby={saveStatus === 'error' ? 'cdp-mount-hint cdp-mount-error' : 'cdp-mount-hint'}
+                            autoComplete="off"
                             onChange={e => {
                                 setMountPath(e.target.value);
                                 setSaveStatus(null);
@@ -119,22 +128,26 @@ export const CloudDumpProviderAdmin = () => {
                             }}
                         />
                         <span id="cdp-mount-hint" className={styles.cdp_hint}>{t('label.mountPathHint')}</span>
+                        {saveStatus === 'error' && (
+                            <span id="cdp-mount-error" className={styles.cdp_sr_only} role="alert">{t('label.saveError')}</span>
+                        )}
                     </div>
                 </div>
 
                 <div className={styles.cdp_actions}>
                     {saveStatus === 'success' && (
                         <div aria-hidden="true" className={`${styles.cdp_alert} ${styles['cdp_alert--success']}`}>
-                            <span className={styles.cdp_alertIcon}>✓</span> {t('label.saveSuccess')}
+                            <span className={styles.cdp_alertIcon} aria-hidden="true">✓</span> {t('label.saveSuccess')}
                         </div>
                     )}
                     {saveStatus === 'error' && (
                         <div aria-hidden="true" className={`${styles.cdp_alert} ${styles['cdp_alert--error']}`}>
-                            <span className={styles.cdp_alertIcon}>✕</span> {t('label.saveError')}
+                            <span className={styles.cdp_alertIcon} aria-hidden="true">✕</span> {t('label.saveError')}
                         </div>
                     )}
                     <div className={styles.cdp_buttons}>
                         <Button
+                            buttonRef={saveBtnRef}
                             label={t('label.save')}
                             variant="primary"
                             isDisabled={saving || !mountPath.trim()}
@@ -145,8 +158,9 @@ export const CloudDumpProviderAdmin = () => {
                             variant="secondary"
                             isDisabled={!jContentUrl}
                             onClick={() => window.open(jContentUrl, '_blank')}
+                            aria-describedby="cdp-new-tab-hint"
                         />
-                        <span className={styles.cdp_sr_only}>{t('label.opensInNewTab')}</span>
+                        <span id="cdp-new-tab-hint" className={styles.cdp_sr_only}>{t('label.opensInNewTab')}</span>
                     </div>
                 </div>
             </div>

@@ -8,7 +8,7 @@
     "dumpPath": "Dump files path",
     "dumpPathHint": "Hardcoded filesystem path where Jahia Cloud stores thread and heap dumps.",
     "mountPath": "JCR mount path",
-    "mountPathHint": "JCR path under which dump files are accessible. Changes take effect immediately.",
+    "mountPathHint": "JCR path under which dump files are accessible. Changes take effect immediately. Press Ctrl+Enter to save.",
     "save": "Save settings",
     "browseInJContent": "Browse in jContent",
     "opensInNewTab": "(opens in new tab)",
