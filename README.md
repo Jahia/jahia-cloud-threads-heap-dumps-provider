@@ -4,8 +4,8 @@ Provides read-only JCR access to the thread dumps and heap dumps generated autom
 
 ## Requirements
 
-- Jahia 8.1.0+
-- `graphql-dxm-provider` module
+- Jahia 8.2.1.0+ (parent `org.jahia.modules:jahia-modules:8.2.1.0`)
+- Modules: `default`, `external-provider`, `graphql-dxm-provider`
 
 ## Architecture
 

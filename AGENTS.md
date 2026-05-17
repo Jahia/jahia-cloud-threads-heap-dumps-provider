@@ -5,8 +5,9 @@ Jahia OSGi module that mounts Jahia cloud dump files (`/var/tmp/cloud`) as a JCR
 ## Key Facts
 
 - **artifactId**: `jahia-cloud-threads-heap-dumps-provider` (module key: `cloudDumpProvider`)
-- **Java package**: `org.jahia.community.cloudDumpProvider`
-- **jahia-depends**: `default,graphql-dxm-provider,serverSettings`
+- **Parent**: `org.jahia.modules:jahia-modules:8.2.1.0` — packaging `bundle`, type `system`
+- **Java package**: `org.jahia.community.external.cloud` (GraphQL classes in `.graphql` subpackage)
+- **jahia-depends**: `default,external-provider,graphql-dxm-provider`
 - **OSGi config PID**: `org.jahia.community.cloudDumpProvider`
 - `dumpPath = "/var/tmp/cloud"` — **hardcoded**, not configurable
 - `mountPath` — configurable via admin UI; default: `/sites/systemsite/files/cloud-dumps`
@@ -17,9 +18,10 @@ Jahia OSGi module that mounts Jahia cloud dump files (`/var/tmp/cloud`) as a JCR
 |-------|------|
 | `JahiaCloudDumpMountPointService` | Merged `ManagedService` + mount lifecycle; handles `updated()`, `remount()`, `@Deactivate` |
 | `JahiaCloudDumpDataSource` | `ExternalDataSource`; bridges VFS2 `FileObject` to `ExternalData` |
-| `CloudDumpProviderGraphQLExtensionsProvider` | Registers GraphQL extensions |
-| `CloudDumpProviderQueryExtension` | GraphQL settings query |
-| `CloudDumpProviderMutationExtension` | GraphQL save mutation |
+| `JahiaCloudDumpBinaryImpl` | `javax.jcr.Binary` implementation backed by VFS2 `FileContent` |
+| `JahiaCloudDumpProviderGraphQLExtensionsProvider` | Registers GraphQL extensions |
+| `JahiaCloudDumpProviderQueryExtension` | GraphQL settings query (`@GraphQLRequiresPermission("admin")`) |
+| `JahiaCloudDumpProviderMutationExtension` | GraphQL save mutation (`@GraphQLRequiresPermission("admin")`) |
 
 `JahiaCloudDumpMountPointService` creates `new ExternalContentStoreProvider()` (not Spring-injected), sets `dynamicallyMounted = false`, calls `start()` / `stop()` on mount/remount.
 
