@@ -48,7 +48,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         StringBuilder sb = new StringBuilder();
         for (String segment : segments) {
             if (!segment.isEmpty()) {
-                sb.append(FileSystem.SEPARATOR).append(JCRContentUtils.escapeLocalNodeName(segment));
+                sb.append(FileSystem.SEPARATOR).append(Escaping.escapeIllegalJcrChars(segment));
             }
         }
         return sb.length() == 0 ? FileSystem.SEPARATOR : sb.toString();
@@ -89,9 +89,8 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
     @Override
     public boolean itemExists(String path) {
         try {
-            String unescapedPath = JCRContentUtils.unescapeLocalNodeName(path);
-            final FileObject file = getFile(unescapedPath.endsWith(JCR_CONTENT_SUFFIX) ? StringUtils.substringBeforeLast(
-                    unescapedPath, JCR_CONTENT_SUFFIX) : unescapedPath);
+            final FileObject file = getFile(path.endsWith(JCR_CONTENT_SUFFIX) ? StringUtils.substringBeforeLast(
+                    path, JCR_CONTENT_SUFFIX) : path);
             return file.exists();
         } catch (FileSystemException e) {
             LOGGER.warn("Unable to check file existence for path " + path, e);
@@ -124,7 +123,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
     @Override
     public ExternalData getItemByPath(String path) throws PathNotFoundException {
         try {
-            String unescapedPath = JCRContentUtils.unescapeLocalNodeName(path);
+            String unescapedPath = Escaping.unescapeIllegalJcrChars(path);
             if (path.endsWith(JCR_CONTENT_SUFFIX)) {
                 FileObject fileObject = getFile(StringUtils.substringBeforeLast(unescapedPath, JCR_CONTENT_SUFFIX));
                 if (!fileObject.exists() || fileObject.getType() == FileType.FOLDER) {
@@ -154,7 +153,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
     public List<String> getChildren(String path) throws RepositoryException {
         try {
             if (!path.endsWith(JCR_CONTENT_SUFFIX)) {
-                final FileObject fileObject = getFile(JCRContentUtils.unescapeLocalNodeName(path));
+                final FileObject fileObject = getFile(Escaping.escapeIllegalJcrChars(path));
                 return getChildNames(path, fileObject);
             }
         } catch (FileSystemException e) {
@@ -187,7 +186,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         final List<String> children = new LinkedList<>();
         for (FileObject object : files) {
             if (getSupportedNodeTypes().contains(getDataType(object))) {
-                children.add(JCRContentUtils.escapeLocalNodeName(object.getName().getBaseName()));
+                children.add(Escaping.escapeIllegalJcrChars(object.getName().getBaseName()));
             }
         }
         return children;
@@ -197,7 +196,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
     public List<ExternalData> getChildrenNodes(String path) throws RepositoryException {
         try {
             if (!path.endsWith(JCR_CONTENT_SUFFIX)) {
-                final FileObject fileObject = getFile(JCRContentUtils.unescapeLocalNodeName(path));
+                final FileObject fileObject = getFile(Escaping.escapeIllegalJcrChars(path));
                 return getChildExternalData(path, fileObject);
             }
         } catch (FileSystemException e) {
