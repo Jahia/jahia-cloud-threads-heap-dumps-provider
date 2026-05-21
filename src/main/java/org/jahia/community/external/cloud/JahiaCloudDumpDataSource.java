@@ -276,9 +276,8 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
             }
         } catch (RepositoryException ex) {
             LOGGER.error("Cannot get node privileges", ex);
-        } finally {
-            return privileges;
         }
+        return privileges;
     }
 
     private ExternalData getFile(FileObject fileObject) throws FileSystemException {
