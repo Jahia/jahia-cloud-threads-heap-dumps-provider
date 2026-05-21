@@ -79,3 +79,4 @@ yarn install
 - `tests/Dockerfile` mirrors the same structure for the Cypress container (separate filesystem)
 - Provisioning manifests (`provisioning-manifest-build.yml` / `provisioning-manifest-snapshot.yml`) use bare filenames (`include: 'provisioning.yml'`) — Jahia engine resolves to `assets/` automatically; do **not** add `assets/` prefix
 - CSS Modules in Cypress: match with `[class*="cdp_..."]`
+- **JCR path escaping**: `JCRContentUtils.escapeNodePath()` preserves `:` (it is valid in namespace-qualified JCR names like `jcr:content`). Filenames with `:` (e.g. ISO 8601 timestamps like `2026-01-22T14:15:28Z`) must be escaped **per segment** using `escapeLocalNodeName()`. Use `toJcrPath()` (private helper in `JahiaCloudDumpDataSource`) to build paths from VFS2 filenames. All `ExternalDataSource` API entry points (`getChildren`, `getChildrenNodes`, `itemExists`) must `unescapeLocalNodeName(path)` before resolving the VFS2 path.

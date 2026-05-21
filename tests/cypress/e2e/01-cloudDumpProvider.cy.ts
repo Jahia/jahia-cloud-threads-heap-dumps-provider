@@ -142,6 +142,21 @@ describe('Jahia Cloud Dump Provider', () => {
                 .its('data.jcr.nodeByPath.descendant.property.value')
                 .should('match', /^text\//);
         });
+
+        it('folder with ISO timestamp name (colons) is accessible as jnt:folder', () => {
+            // Regression: filenames containing ':' (e.g. ISO 8601 timestamps) caused
+            // MalformedPathException because escapeNodePath() did not escape ':'.
+            cy.login();
+            cy.apollo({
+                query: getDumpFile,
+                variables: {path: `${defaultMountPath}/modulesdump/2026-01-22T14%3A15%3A28.106Z_cluster_restart`}
+            })
+                .its('data.jcr.nodeByPath')
+                .should(node => {
+                    expect(node).to.not.be.null;
+                    expect(node.primaryNodeType.name).to.eq('jnt:folder');
+                });
+        });
     });
 
     // ─── Admin UI — Configuration ─────────────────────────────────────────────────

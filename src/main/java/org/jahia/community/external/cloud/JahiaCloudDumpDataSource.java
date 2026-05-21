@@ -85,8 +85,9 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
     @Override
     public boolean itemExists(String path) {
         try {
-            final FileObject file = getFile(path.endsWith(JCR_CONTENT_SUFFIX) ? StringUtils.substringBeforeLast(
-                    path, JCR_CONTENT_SUFFIX) : path);
+            String unescapedPath = JCRContentUtils.unescapeLocalNodeName(path);
+            final FileObject file = getFile(unescapedPath.endsWith(JCR_CONTENT_SUFFIX) ? StringUtils.substringBeforeLast(
+                    unescapedPath, JCR_CONTENT_SUFFIX) : unescapedPath);
             return file.exists();
         } catch (FileSystemException e) {
             LOGGER.warn("Unable to check file existence for path " + path, e);
@@ -149,7 +150,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
     public List<String> getChildren(String path) throws RepositoryException {
         try {
             if (!path.endsWith(JCR_CONTENT_SUFFIX)) {
-                final FileObject fileObject = getFile(path);
+                final FileObject fileObject = getFile(JCRContentUtils.unescapeLocalNodeName(path));
                 return getChildNames(path, fileObject);
             }
         } catch (FileSystemException e) {
@@ -192,7 +193,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
     public List<ExternalData> getChildrenNodes(String path) throws RepositoryException {
         try {
             if (!path.endsWith(JCR_CONTENT_SUFFIX)) {
-                final FileObject fileObject = getFile(path);
+                final FileObject fileObject = getFile(JCRContentUtils.unescapeLocalNodeName(path));
                 return getChildExternalData(path, fileObject);
             }
         } catch (FileSystemException e) {
@@ -294,7 +295,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
             }
         }
 
-        String path = JCRContentUtils.escapeNodePath(fileObject.getName().getPath().substring(rootPath.length()));
+        String path = toJcrPath(fileObject.getName().getPath().substring(rootPath.length()));
         if (!path.startsWith(FileSystem.SEPARATOR)) {
             path = FileSystem.SEPARATOR + path;
         }
@@ -302,6 +303,24 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         final ExternalData result = new ExternalData(path, path, type, properties);
         result.setMixin(addedMixins);
         return result;
+    }
+
+    // Converts a raw filesystem relative path to a JCR-safe path by escaping each
+    // segment individually. escapeNodePath() preserves ':' (valid in qualified names
+    // like jcr:content) but filenames such as ISO timestamps contain ':' which is
+    // illegal in unqualified JCR node names.
+    private static String toJcrPath(String filesystemRelativePath) {
+        if (filesystemRelativePath == null || filesystemRelativePath.isEmpty()) {
+            return FileSystem.SEPARATOR;
+        }
+        String[] segments = filesystemRelativePath.split("/", -1);
+        StringBuilder sb = new StringBuilder();
+        for (String segment : segments) {
+            if (!segment.isEmpty()) {
+                sb.append(FileSystem.SEPARATOR).append(JCRContentUtils.escapeLocalNodeName(segment));
+            }
+        }
+        return sb.length() == 0 ? FileSystem.SEPARATOR : sb.toString();
     }
 
     public String getDataType(FileObject fileObject) throws FileSystemException {
@@ -314,7 +333,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
 
         properties.put(Constants.JCR_MIMETYPE, new String[]{getContentType(content)});
 
-        final String path = JCRContentUtils.escapeNodePath(content.getFile().getName().getPath().substring(rootPath.length()));
+        final String path = toJcrPath(content.getFile().getName().getPath().substring(rootPath.length()));
         final String jcrContentPath = path + FileSystem.SEPARATOR + Constants.JCR_CONTENT;
         final ExternalData externalData = new ExternalData(jcrContentPath, jcrContentPath, Constants.JAHIANT_RESOURCE, properties);
 
