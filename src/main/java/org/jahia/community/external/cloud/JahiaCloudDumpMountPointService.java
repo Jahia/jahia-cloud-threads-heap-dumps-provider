@@ -80,6 +80,7 @@ public class JahiaCloudDumpMountPointService implements ManagedService {
         this.externalProviderInitializerService = externalProviderInitializerService;
     }
 
+
     // CM calls updated() immediately after activation with stored config (or null).
     // No need to call start() from @Activate — updated() is guaranteed to fire first.
     @Activate

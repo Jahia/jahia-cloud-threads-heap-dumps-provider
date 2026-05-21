@@ -1,42 +1,28 @@
 package org.jahia.community.external.cloud;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.Binary;
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.RepositoryException;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.vfs2.FileContent;
-import org.apache.commons.vfs2.FileObject;
-import org.apache.commons.vfs2.FileSystemException;
-import org.apache.commons.vfs2.FileSystemManager;
-import org.apache.commons.vfs2.FileType;
-import org.apache.commons.vfs2.VFS;
+import org.apache.commons.vfs2.*;
 import org.apache.jackrabbit.core.fs.FileSystem;
 import org.apache.jackrabbit.util.ISO8601;
 import org.jahia.api.Constants;
 import org.jahia.modules.external.ExternalData;
 import org.jahia.modules.external.ExternalDataSource;
-import org.jahia.registries.ServicesRegistry;
 import org.jahia.services.content.JCRContentUtils;
+import org.jahia.services.content.JCRSessionFactory;
 import org.jahia.services.content.decorator.JCRUserNode;
-import org.jahia.services.sites.JahiaSitesService;
 import org.jahia.services.usermanager.JahiaUserManagerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.Binary;
+import javax.jcr.ItemNotFoundException;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
+import java.util.*;
+
 public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDataSource.Writable, ExternalDataSource.CanLoadChildrenInBatch, ExternalDataSource.SupportPrivileges {
 
-    private static final List<String> JCR_CONTENT_LIST = Arrays.asList(Constants.JCR_CONTENT);
+    private static final List<String> JCR_CONTENT_LIST = List.of(Constants.JCR_CONTENT);
     private static final Set<String> SUPPORTED_NODE_TYPES = new HashSet<>(Arrays.asList(Constants.JAHIANT_FILE, Constants.JAHIANT_FOLDER, Constants.JCR_CONTENT));
     private static final Logger LOGGER = LoggerFactory.getLogger(JahiaCloudDumpDataSource.class);
     private static final String JCR_CONTENT_SUFFIX = FileSystem.SEPARATOR + Constants.JCR_CONTENT;
@@ -48,6 +34,24 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
 
     public JahiaCloudDumpDataSource(String jahiaCloudDumpPath) {
         this.jahiaCloudDumpPath = jahiaCloudDumpPath;
+    }
+
+    // Converts a raw filesystem relative path to a JCR-safe path by escaping each
+    // segment individually. escapeNodePath() preserves ':' (valid in qualified names
+    // like jcr:content) but filenames such as ISO timestamps contain ':' which is
+    // illegal in unqualified JCR node names.
+    private static String toJcrPath(String filesystemRelativePath) {
+        if (filesystemRelativePath == null || filesystemRelativePath.isEmpty()) {
+            return FileSystem.SEPARATOR;
+        }
+        String[] segments = filesystemRelativePath.split("/", -1);
+        StringBuilder sb = new StringBuilder();
+        for (String segment : segments) {
+            if (!segment.isEmpty()) {
+                sb.append(FileSystem.SEPARATOR).append(JCRContentUtils.escapeLocalNodeName(segment));
+            }
+        }
+        return sb.length() == 0 ? FileSystem.SEPARATOR : sb.toString();
     }
 
     public void setRoot() {
@@ -264,14 +268,17 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
     public String[] getPrivilegesNames(String username, String path) {
         final JahiaUserManagerService userManagerService = JahiaUserManagerService.getInstance();
         final JCRUserNode userNode = userManagerService.lookupUser(username);
-        final String[] privileges;
-        if (ServicesRegistry.getInstance().getJahiaGroupManagerService().isAdminMember(userNode.getName(), JahiaSitesService.SYSTEM_SITE_KEY)) {
-            privileges = new String[1];
-            privileges[0] = Constants.JCR_READ_RIGHTS + "_" + Constants.EDIT_WORKSPACE;
-        } else {
-            privileges = new String[0];
+        String[] privileges = new String[0];
+        try {
+            if (JCRSessionFactory.getInstance().getCurrentUserSession(Constants.EDIT_WORKSPACE).getNode("/").hasPermission("admin")) {
+                privileges = new String[1];
+                privileges[0] = Constants.JCR_READ_RIGHTS + "_" + Constants.EDIT_WORKSPACE;
+            }
+        } catch (RepositoryException ex) {
+            LOGGER.error("Cannot get node privileges", ex);
+        } finally {
+            return privileges;
         }
-        return privileges;
     }
 
     private ExternalData getFile(FileObject fileObject) throws FileSystemException {
@@ -303,24 +310,6 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         final ExternalData result = new ExternalData(path, path, type, properties);
         result.setMixin(addedMixins);
         return result;
-    }
-
-    // Converts a raw filesystem relative path to a JCR-safe path by escaping each
-    // segment individually. escapeNodePath() preserves ':' (valid in qualified names
-    // like jcr:content) but filenames such as ISO timestamps contain ':' which is
-    // illegal in unqualified JCR node names.
-    private static String toJcrPath(String filesystemRelativePath) {
-        if (filesystemRelativePath == null || filesystemRelativePath.isEmpty()) {
-            return FileSystem.SEPARATOR;
-        }
-        String[] segments = filesystemRelativePath.split("/", -1);
-        StringBuilder sb = new StringBuilder();
-        for (String segment : segments) {
-            if (!segment.isEmpty()) {
-                sb.append(FileSystem.SEPARATOR).append(JCRContentUtils.escapeLocalNodeName(segment));
-            }
-        }
-        return sb.length() == 0 ? FileSystem.SEPARATOR : sb.toString();
     }
 
     public String getDataType(FileObject fileObject) throws FileSystemException {
