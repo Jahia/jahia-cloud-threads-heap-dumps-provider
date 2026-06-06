@@ -49,12 +49,17 @@ public final class JahiaCloudDumpBinaryImpl implements Binary {
 
     @Override
     public int read(byte[] b, long position) throws IOException, RepositoryException {
-
-        int read = 0;
         try (final InputStream is = getStream()) {
-            read = is.read(b, (int) position, b.length);
+            long remaining = position;
+            while (remaining > 0) {
+                final long skipped = is.skip(remaining);
+                if (skipped <= 0) {
+                    return -1;
+                }
+                remaining -= skipped;
+            }
+            return is.read(b, 0, b.length);
         }
-        return read;
     }
 
     @Override
