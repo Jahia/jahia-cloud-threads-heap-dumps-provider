@@ -9,8 +9,6 @@ import org.jahia.modules.external.ExternalData;
 import org.jahia.modules.external.ExternalDataSource;
 import org.jahia.services.content.JCRContentUtils;
 import org.jahia.services.content.JCRSessionFactory;
-import org.jahia.services.content.decorator.JCRUserNode;
-import org.jahia.services.usermanager.JahiaUserManagerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,14 +144,19 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         if (path == null || path.isEmpty() || FileSystem.SEPARATOR.equals(path)) {
             return root;
         }
-        return root.resolveFile(path.charAt(0) == FileSystem.SEPARATOR_CHAR ? path.substring(1) : path);
+        final FileObject resolved = root.resolveFile(path.charAt(0) == FileSystem.SEPARATOR_CHAR ? path.substring(1) : path);
+        final String resolvedPath = resolved.getName().getPath();
+        if (!resolvedPath.startsWith(rootPath)) {
+            throw new FileSystemException("Path escapes configured root: " + path);
+        }
+        return resolved;
     }
 
     @Override
     public List<String> getChildren(String path) throws RepositoryException {
         try {
             if (!path.endsWith(JCR_CONTENT_SUFFIX)) {
-                final FileObject fileObject = getFile(Escaping.escapeIllegalJcrChars(path));
+                final FileObject fileObject = getFile(Escaping.unescapeIllegalJcrChars(path));
                 return getChildNames(path, fileObject);
             }
         } catch (FileSystemException e) {
@@ -196,7 +199,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
     public List<ExternalData> getChildrenNodes(String path) throws RepositoryException {
         try {
             if (!path.endsWith(JCR_CONTENT_SUFFIX)) {
-                final FileObject fileObject = getFile(Escaping.escapeIllegalJcrChars(path));
+                final FileObject fileObject = getFile(Escaping.unescapeIllegalJcrChars(path));
                 return getChildExternalData(path, fileObject);
             }
         } catch (FileSystemException e) {
@@ -265,8 +268,6 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
 
     @Override
     public String[] getPrivilegesNames(String username, String path) {
-        final JahiaUserManagerService userManagerService = JahiaUserManagerService.getInstance();
-        final JCRUserNode userNode = userManagerService.lookupUser(username);
         String[] privileges = new String[0];
         try {
             if (JCRSessionFactory.getInstance().getCurrentUserSession(Constants.EDIT_WORKSPACE).getNode("/").hasPermission("admin")) {
@@ -286,7 +287,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         final List<String> addedMixins = new ArrayList<>();
         final FileContent content = fileObject.getContent();
         if (content != null) {
-            final long lastModifiedTime = fileObject.getContent().getLastModifiedTime();
+            final long lastModifiedTime = content.getLastModifiedTime();
             if (lastModifiedTime > 0) {
                 final Calendar calendar = Calendar.getInstance();
                 calendar.setTimeInMillis(lastModifiedTime);
@@ -295,7 +296,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
                 properties.put(Constants.JCR_LASTMODIFIED, timestamp);
             }
             if (content.getContentInfo() != null && content.getContentInfo().getContentType() != null
-                    && fileObject.getContent().getContentInfo().getContentType().matches("image/(.*)")) {
+                    && content.getContentInfo().getContentType().matches("image/(.*)")) {
                 addedMixins.add(Constants.JAHIAMIX_IMAGE);
             }
         }
