@@ -20,7 +20,7 @@ public class JahiaCloudDumpProviderQueryExtension {
     @GraphQLField
     @GraphQLName("cloudDumpSettings")
     @GraphQLDescription("Returns the current Cloud Dump Provider settings")
-    @GraphQLRequiresPermission("admin")
+    @GraphQLRequiresPermission("heapDumpsAdmin")
     public static GqlSettings settings() {
         final JahiaCloudDumpMountPointService service = BundleUtils.getOsgiService(JahiaCloudDumpMountPointService.class, null);
         final String mountPath = service != null ? service.getMountPath() : JahiaCloudDumpMountPointService.DEFAULT_MOUNT_PATH;

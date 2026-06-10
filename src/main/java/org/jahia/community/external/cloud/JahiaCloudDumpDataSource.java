@@ -281,7 +281,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
     public String[] getPrivilegesNames(String username, String path) {
         String[] privileges = new String[0];
         try {
-            if (JCRSessionFactory.getInstance().getCurrentUserSession(Constants.EDIT_WORKSPACE).getNode("/").hasPermission("admin")) {
+            if (JCRSessionFactory.getInstance().getCurrentUserSession(Constants.EDIT_WORKSPACE).getNode("/").hasPermission("heapDumpsAdmin")) {
                 privileges = new String[1];
                 privileges[0] = Constants.JCR_READ_RIGHTS + "_" + Constants.EDIT_WORKSPACE;
             }
