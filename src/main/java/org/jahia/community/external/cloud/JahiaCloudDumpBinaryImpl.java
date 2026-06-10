@@ -13,7 +13,7 @@ public final class JahiaCloudDumpBinaryImpl implements Binary {
 
     private static final Logger logger = LoggerFactory.getLogger(JahiaCloudDumpBinaryImpl.class);
 
-    private FileContent fileContent;
+    private final FileContent fileContent;
 
     public JahiaCloudDumpBinaryImpl(FileContent fileContent) {
         super();
