@@ -28,7 +28,7 @@ public class JahiaCloudDumpProviderMutationExtension {
     @GraphQLField
     @GraphQLName("cloudDumpSaveSettings")
     @GraphQLDescription("Saves the Cloud Dump Provider settings. The provider will remount at the new JCR path.")
-    @GraphQLRequiresPermission("admin")
+    @GraphQLRequiresPermission("heapDumpsAdmin")
     public static Boolean saveSettings(
             @GraphQLName("mountPath") @GraphQLDescription("JCR path where cloud dump files should be mounted") String mountPath) {
         try {
