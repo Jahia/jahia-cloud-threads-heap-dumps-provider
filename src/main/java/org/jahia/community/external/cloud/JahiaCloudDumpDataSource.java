@@ -25,6 +25,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
     private static final Logger LOGGER = LoggerFactory.getLogger(JahiaCloudDumpDataSource.class);
     private static final String JCR_CONTENT_SUFFIX = FileSystem.SEPARATOR + Constants.JCR_CONTENT;
     private static final String UNKNOWN_FILE_TYPE = "Found non file or folder entry at path {}, maybe an alias. VFS file type: {}";
+    private static final String DEFAULT_MIME_TYPE = "application/octet-stream";
     private final String jahiaCloudDumpPath;
     private FileObject root;
     private String rootPath;
@@ -145,11 +146,21 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
             return root;
         }
         final FileObject resolved = root.resolveFile(path.charAt(0) == FileSystem.SEPARATOR_CHAR ? path.substring(1) : path);
-        final String resolvedPath = resolved.getName().getPath();
-        if (!resolvedPath.startsWith(rootPath)) {
+        if (!isWithinRoot(resolved.getName().getPath())) {
             throw new FileSystemException("Path escapes configured root: " + path);
         }
         return resolved;
+    }
+
+    // Containment check that resists sibling-directory escapes: a bare
+    // startsWith(rootPath) would wrongly accept "/var/tmp/cloud-evil" when the
+    // root is "/var/tmp/cloud". Require an exact match or a separator boundary.
+    private boolean isWithinRoot(String resolvedPath) {
+        if (resolvedPath == null) {
+            return false;
+        }
+        return resolvedPath.equals(rootPath)
+                || resolvedPath.startsWith(rootPath + FileSystem.SEPARATOR);
     }
 
     @Override
@@ -333,13 +344,13 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
     }
 
     protected String getContentType(FileContent content) throws FileSystemException {
-        String s1 = content.getContentInfo().getContentType();
-        if (s1 == null) {
-            s1 = JCRContentUtils.getMimeType(content.getFile().getName().getBaseName());
+        String mimeType = content.getContentInfo() != null ? content.getContentInfo().getContentType() : null;
+        if (mimeType == null) {
+            mimeType = JCRContentUtils.getMimeType(content.getFile().getName().getBaseName());
         }
-        if (s1 == null) {
-            s1 = "application/octet-stream";
+        if (mimeType == null) {
+            mimeType = DEFAULT_MIME_TYPE;
         }
-        return s1;
+        return mimeType;
     }
 }
