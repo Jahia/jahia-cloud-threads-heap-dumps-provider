@@ -8,7 +8,7 @@
   </parent>
   <groupId>org.jahia.community</groupId>
   <artifactId>jahia-cloud-threads-heap-dumps-provider</artifactId>
-  <version>2.0.3-SNAPSHOT</version>
+  <version>2.0.4-SNAPSHOT</version>
   <packaging>bundle</packaging>
   <name>Jahia Cloud - Threads and heap dumps provider</name>
   <description>Give access to the threads and heap dumps generated automatically on Jahia Cloud</description>
