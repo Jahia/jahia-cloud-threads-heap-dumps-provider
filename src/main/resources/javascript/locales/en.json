@@ -1,7 +1,6 @@
 {
   "label": {
     "main_menu_entry": "Cloud Dump Provider",
-    "conf_menu_entry": "Configuration",
     "title": "Jahia Cloud — Threads & Heap Dumps Provider",
     "description": "Provides read-only JCR access to thread dumps and heap dumps generated on Jahia Cloud (stored at /var/tmp/cloud).",
     "loading": "Loading, please wait.",
@@ -11,7 +10,7 @@
     "mountPathHint": "JCR path under which dump files are accessible. Changes take effect immediately. Press Ctrl+Enter to save.",
     "save": "Save settings",
     "browseInJContent": "Browse in jContent",
-    "opensInNewTab": "(opens in new tab)",
+    "opensInNewTab": "Opens in new tab",
     "saveSuccess": "Settings saved successfully.",
     "saveError": "An error occurred while saving settings."
   }

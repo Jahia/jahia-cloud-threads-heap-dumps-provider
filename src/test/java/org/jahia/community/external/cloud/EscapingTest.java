@@ -28,4 +28,28 @@ public class EscapingTest {
     public void escapeIllegalJcrChars_emptyStringStaysEmpty() {
         assertThat(Escaping.escapeIllegalJcrChars("")).isEmpty();
     }
+
+    // (#9) Round-trip: unescape(escape(x)) == x for every character in the illegal set.
+    @Test
+    public void roundTrip_escapeFollowedByUnescape_restoresOriginal() {
+        // Each character that escapeIllegalJcrChars() encodes must survive a round-trip.
+        final String[] inputs = {
+            "[",
+            "]",
+            "*",
+            "|",
+            ":",
+            "2026-01-22T14:15:28Z",       // ISO-8601 timestamp
+            "heap[0].hprof",               // brackets
+            "a|b*c:d[e]f",                 // all illegal chars combined
+            "plain_name_no_specials.txt",  // no-op: should be unchanged
+        };
+        for (String original : inputs) {
+            final String escaped = Escaping.escapeIllegalJcrChars(original);
+            final String restored = Escaping.unescapeIllegalJcrChars(escaped);
+            assertThat(restored)
+                    .as("round-trip for: %s", original)
+                    .isEqualTo(original);
+        }
+    }
 }
