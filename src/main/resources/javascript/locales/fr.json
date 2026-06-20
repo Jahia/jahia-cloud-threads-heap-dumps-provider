@@ -1,0 +1,17 @@
+{
+  "label": {
+    "main_menu_entry": "Fournisseur de dumps cloud",
+    "title": "Jahia Cloud — Fournisseur de dumps de threads et de mémoire",
+    "description": "Fournit un accès JCR en lecture seule aux dumps de threads et de mémoire générés sur Jahia Cloud (stockés dans /var/tmp/cloud).",
+    "loading": "Chargement, veuillez patienter.",
+    "dumpPath": "Chemin des fichiers de dump",
+    "dumpPathHint": "Chemin du système de fichiers, codé en dur, où Jahia Cloud stocke les dumps de threads et de mémoire.",
+    "mountPath": "Chemin de montage JCR",
+    "mountPathHint": "Chemin JCR sous lequel les fichiers de dump sont accessibles. Les modifications prennent effet immédiatement. Appuyez sur Ctrl+Entrée pour enregistrer.",
+    "save": "Enregistrer les paramètres",
+    "browseInJContent": "Parcourir dans jContent",
+    "opensInNewTab": "Ouvre dans un nouvel onglet",
+    "saveSuccess": "Paramètres enregistrés avec succès.",
+    "saveError": "Une erreur est survenue lors de l'enregistrement des paramètres."
+  }
+}

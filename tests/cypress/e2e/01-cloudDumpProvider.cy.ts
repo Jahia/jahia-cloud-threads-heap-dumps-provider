@@ -61,10 +61,11 @@ describe('Jahia Cloud Dump Provider', () => {
             cy.apollo({
                 mutation: saveSettings,
                 variables: {mountPath: testPath}
-            });
-            cy.apollo({query: getSettings})
-                .its('data.cloudDumpSettings.mountPath')
-                .should('eq', testPath);
+            }).then(() =>
+                cy.apollo({query: getSettings})
+                    .its('data.cloudDumpSettings.mountPath')
+                    .should('eq', testPath)
+            );
         });
     });
 
@@ -80,7 +81,6 @@ describe('Jahia Cloud Dump Provider', () => {
         });
 
         it('mount point root exists as a jnt:folder', () => {
-            cy.login();
             cy.apollo({query: getDumpFile, variables: {path: defaultMountPath}})
                 .its('data.jcr.nodeByPath')
                 .should(node => {
@@ -90,7 +90,6 @@ describe('Jahia Cloud Dump Provider', () => {
         });
 
         it('heap sub-folder exists as a jnt:folder', () => {
-            cy.login();
             cy.apollo({query: getDumpFile, variables: {path: `${defaultMountPath}/heap`}})
                 .its('data.jcr.nodeByPath')
                 .should(node => {
@@ -100,7 +99,6 @@ describe('Jahia Cloud Dump Provider', () => {
         });
 
         it('heapdump.hprof exists as a jnt:file', () => {
-            cy.login();
             cy.apollo({query: getDumpFile, variables: {path: `${defaultMountPath}/heap/heapdump.hprof`}})
                 .its('data.jcr.nodeByPath')
                 .should(node => {
@@ -110,14 +108,12 @@ describe('Jahia Cloud Dump Provider', () => {
         });
 
         it('heapdump.hprof has a binary MIME type', () => {
-            cy.login();
             cy.apollo({query: getDumpFile, variables: {path: `${defaultMountPath}/heap/heapdump.hprof`}})
                 .its('data.jcr.nodeByPath.descendant.property.value')
                 .should('not.be.null');
         });
 
         it('thread sub-folder exists as a jnt:folder', () => {
-            cy.login();
             cy.apollo({query: getDumpFile, variables: {path: `${defaultMountPath}/thread`}})
                 .its('data.jcr.nodeByPath')
                 .should(node => {
@@ -127,7 +123,6 @@ describe('Jahia Cloud Dump Provider', () => {
         });
 
         it('thread_dump.txt exists as a jnt:file', () => {
-            cy.login();
             cy.apollo({query: getDumpFile, variables: {path: `${defaultMountPath}/thread/thread_dump.txt`}})
                 .its('data.jcr.nodeByPath')
                 .should(node => {
@@ -137,7 +132,6 @@ describe('Jahia Cloud Dump Provider', () => {
         });
 
         it('thread_dump.txt has a text MIME type', () => {
-            cy.login();
             cy.apollo({query: getDumpFile, variables: {path: `${defaultMountPath}/thread/thread_dump.txt`}})
                 .its('data.jcr.nodeByPath.descendant.property.value')
                 .should('match', /^text\//);
@@ -146,7 +140,6 @@ describe('Jahia Cloud Dump Provider', () => {
         it('folder with ISO timestamp name (colons) is accessible as jnt:folder', () => {
             // Regression: filenames containing ':' (e.g. ISO 8601 timestamps) caused
             // MalformedPathException because escapeNodePath() did not escape ':'.
-            cy.login();
             cy.apollo({
                 query: getDumpFile,
                 variables: {path: `${defaultMountPath}/modulesdump/2026-01-22T14%3A15%3A28.106Z_cluster_restart`}
@@ -162,26 +155,26 @@ describe('Jahia Cloud Dump Provider', () => {
     // ─── Admin UI — Configuration ─────────────────────────────────────────────────
 
     describe('Admin UI — Configuration', () => {
-        it('shows the admin panel title', () => {
+        beforeEach(() => {
             cy.login();
+        });
+
+        it('shows the admin panel title', () => {
             cy.visit(configPath);
             cy.contains('Jahia Cloud').should('be.visible');
         });
 
         it('shows the mount path input field', () => {
-            cy.login();
             cy.visit(configPath);
             cy.get('#cdp-mount-path').should('be.visible');
         });
 
         it('shows the save button', () => {
-            cy.login();
             cy.visit(configPath);
             cy.contains('button', 'Save settings').should('be.visible');
         });
 
         it('shows success alert after saving via button', () => {
-            cy.login();
             cy.visit(configPath);
             cy.get('#cdp-mount-path').clear();
             cy.get('#cdp-mount-path').type('/sites/systemsite/files/cloud-dumps-ui-test');
@@ -190,7 +183,6 @@ describe('Jahia Cloud Dump Provider', () => {
         });
 
         it('shows success alert after saving via Ctrl+Enter', () => {
-            cy.login();
             cy.visit(configPath);
             cy.get('#cdp-mount-path').clear();
             cy.get('#cdp-mount-path').type('/sites/systemsite/files/cloud-dumps-keyboard-test');
@@ -199,7 +191,6 @@ describe('Jahia Cloud Dump Provider', () => {
         });
 
         it('Ctrl+Enter does nothing when the field is empty', () => {
-            cy.login();
             cy.visit(configPath);
             cy.get('#cdp-mount-path').clear();
             cy.get('#cdp-mount-path').type('{ctrl+enter}');
@@ -210,14 +201,16 @@ describe('Jahia Cloud Dump Provider', () => {
     // ─── Admin UI — Browse in jContent ───────────────────────────────────────────
 
     describe('Admin UI — Browse in jContent', () => {
-        it('shows the Browse in jContent button', () => {
+        beforeEach(() => {
             cy.login();
+        });
+
+        it('shows the Browse in jContent button', () => {
             cy.visit(configPath);
             cy.contains('button', 'Browse in jContent').should('be.visible');
         });
 
         it('Browse in jContent button is enabled for a valid /sites/ mount path', () => {
-            cy.login();
             cy.visit(configPath);
             cy.get('#cdp-mount-path').clear();
             cy.get('#cdp-mount-path').type('/sites/systemsite/files/cloud-dumps');
@@ -225,7 +218,6 @@ describe('Jahia Cloud Dump Provider', () => {
         });
 
         it('Browse in jContent button is disabled when mount path is not a /sites/ path', () => {
-            cy.login();
             cy.visit(configPath);
             cy.get('#cdp-mount-path').clear();
             cy.get('#cdp-mount-path').type('/invalid/path');
@@ -233,7 +225,6 @@ describe('Jahia Cloud Dump Provider', () => {
         });
 
         it('Browse in jContent button opens the correct jContent URL', () => {
-            cy.login();
             cy.visit(configPath);
             cy.window().then(win => {
                 cy.stub(win, 'open').as('windowOpen');

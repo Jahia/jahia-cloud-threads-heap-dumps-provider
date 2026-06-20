@@ -1,11 +1,15 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {useMutation, useQuery} from '@apollo/client';
 import {useTranslation} from 'react-i18next';
 import {Button, Loader, Typography} from '@jahia/moonstone';
 import styles from './CloudDumpProvider.scss';
 import {GET_SETTINGS, SAVE_SETTINGS} from './CloudDumpProvider.gql';
 
-const buildJContentUrl = jcrPath => {
+// Delay before restoring focus after a save, so the live region announcement
+// is not interrupted by the focus move (gives AT time to read the status).
+const FOCUS_RESTORE_DELAY_MS = 50;
+
+export const buildJContentUrl = jcrPath => {
     const match = jcrPath.match(/^\/sites\/([^/]+)\/files(\/.*)?$/);
     if (!match) {
         return null;
@@ -23,27 +27,22 @@ export const CloudDumpProviderAdmin = () => {
     const saveBtnRef = useRef(null);
     const mountPathRef = useRef(null);
 
-    useEffect(() => {
-        document.title = `${t('label.title')} — Jahia Administration`;
-    }, [t]);
-
-    const {loading} = useQuery(GET_SETTINGS, {
+    const {data, loading} = useQuery(GET_SETTINGS, {
         fetchPolicy: 'network-only',
-        onCompleted: data => {
-            const s = data?.cloudDumpSettings;
+        onCompleted: completed => {
+            const s = completed?.cloudDumpSettings;
             if (s) {
                 setMountPath(s.mountPath ?? '');
             }
         }
     });
 
-    const {data} = useQuery(GET_SETTINGS, {fetchPolicy: 'cache-first'});
     const dumpPath = data?.cloudDumpSettings?.dumpPath ?? '';
     const jContentUrl = buildJContentUrl(mountPath);
 
     const [saveSettings, {loading: saving}] = useMutation(SAVE_SETTINGS);
 
-    const handleSave = async () => {
+    const handleSave = useCallback(async () => {
         setSaveStatus(null);
         try {
             const result = await saveSettings({variables: {mountPath}});
@@ -55,13 +54,13 @@ export const CloudDumpProviderAdmin = () => {
                 } else {
                     mountPathRef.current?.focus();
                 }
-            }, 50);
+            }, FOCUS_RESTORE_DELAY_MS);
         } catch (err) {
             console.error('Failed to save settings:', err);
             setSaveStatus('error');
-            setTimeout(() => mountPathRef.current?.focus(), 50);
+            setTimeout(() => mountPathRef.current?.focus(), FOCUS_RESTORE_DELAY_MS);
         }
-    };
+    }, [saveSettings, mountPath]);
 
     const saveLiveMsg = saveStatus === 'success' ? t('label.saveSuccess') :
         saveStatus === 'error' ? t('label.saveError') : '';
@@ -108,11 +107,11 @@ export const CloudDumpProviderAdmin = () => {
                         </label>
                         <input
                             ref={mountPathRef}
+                            required
                             type="text"
                             id="cdp-mount-path"
                             className={styles.cdp_input}
                             value={mountPath}
-                            required
                             aria-required="true"
                             aria-invalid={saveStatus === 'error' ? 'true' : undefined}
                             aria-describedby={saveStatus === 'error' ? 'cdp-mount-hint cdp-mount-error' : 'cdp-mount-hint'}
@@ -129,7 +128,7 @@ export const CloudDumpProviderAdmin = () => {
                         />
                         <span id="cdp-mount-hint" className={styles.cdp_hint}>{t('label.mountPathHint')}</span>
                         {saveStatus === 'error' && (
-                            <span id="cdp-mount-error" className={styles.cdp_sr_only} role="alert">{t('label.saveError')}</span>
+                            <span id="cdp-mount-error" className={styles.cdp_sr_only}>{t('label.saveError')}</span>
                         )}
                     </div>
                 </div>
@@ -157,8 +156,8 @@ export const CloudDumpProviderAdmin = () => {
                             label={t('label.browseInJContent')}
                             variant="secondary"
                             isDisabled={!jContentUrl}
-                            onClick={() => window.open(jContentUrl, '_blank')}
                             aria-describedby="cdp-new-tab-hint"
+                            onClick={() => window.open(jContentUrl, '_blank')}
                         />
                         <span id="cdp-new-tab-hint" className={styles.cdp_sr_only}>{t('label.opensInNewTab')}</span>
                     </div>

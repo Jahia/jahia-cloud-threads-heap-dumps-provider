@@ -16,12 +16,17 @@ import javax.jcr.Binary;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDataSource.Writable, ExternalDataSource.CanLoadChildrenInBatch, ExternalDataSource.SupportPrivileges {
 
     private static final List<String> JCR_CONTENT_LIST = List.of(Constants.JCR_CONTENT);
-    private static final Set<String> SUPPORTED_NODE_TYPES = new HashSet<>(Arrays.asList(Constants.JAHIANT_FILE, Constants.JAHIANT_FOLDER, Constants.JCR_CONTENT));
+    // SUPPORTED_NODE_TYPES is a static unmodifiable constant; getSupportedNodeTypes() returns
+    // it directly rather than creating a defensive copy on every call.
+    private static final Set<String> SUPPORTED_NODE_TYPES = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(Constants.JAHIANT_FILE, Constants.JAHIANT_FOLDER, Constants.JCR_CONTENT)));
     private static final Logger LOGGER = LoggerFactory.getLogger(JahiaCloudDumpDataSource.class);
     private static final String JCR_CONTENT_SUFFIX = FileSystem.SEPARATOR + Constants.JCR_CONTENT;
     private static final String UNKNOWN_FILE_TYPE = "Found non file or folder entry at path {}, maybe an alias. VFS file type: {}";
@@ -29,6 +34,8 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
     private final String jahiaCloudDumpPath;
     private FileObject root;
     private String rootPath;
+    // Canonical (symlink-resolved) form of rootPath, used for symlink containment check.
+    private String canonicalRootPath;
     private FileSystemManager manager;
 
     public JahiaCloudDumpDataSource(String jahiaCloudDumpPath) {
@@ -39,6 +46,14 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
     // segment individually. escapeNodePath() preserves ':' (valid in qualified names
     // like jcr:content) but filenames such as ISO timestamps contain ':' which is
     // illegal in unqualified JCR node names.
+    //
+    // Escape/unescape coupling: all ExternalDataSource entry-points that receive a
+    // JCR path (itemExists, getItemByPath, getChildren, getChildrenNodes) MUST call
+    // Escaping.unescapeIllegalJcrChars() before passing the path to getFile(), so
+    // the VFS layer always sees raw filesystem characters. Conversely, any path
+    // returned to the JCR layer (e.g. in ExternalData or child name lists) MUST be
+    // produced through toJcrPath() / Escaping.escapeIllegalJcrChars() so that
+    // illegal characters are encoded as %-sequences.
     private static String toJcrPath(String filesystemRelativePath) {
         if (filesystemRelativePath == null || filesystemRelativePath.isEmpty()) {
             return FileSystem.SEPARATOR;
@@ -58,8 +73,20 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
             manager = VFS.getManager();
             root = manager.resolveFile(jahiaCloudDumpPath);
             rootPath = root.getName().getPath();
+            canonicalRootPath = resolveCanonicalPath(rootPath);
         } catch (FileSystemException ex) {
             throw new IllegalStateException("Cannot set root to " + jahiaCloudDumpPath, ex);
+        }
+    }
+
+    // Resolves the OS-canonical (symlink-resolved) path, or null if it cannot be resolved
+    // (e.g. the path does not exist yet) — in which case the symlink containment check is skipped.
+    private static String resolveCanonicalPath(String path) {
+        try {
+            return new File(path).getCanonicalPath();
+        } catch (IOException ex) {
+            LOGGER.warn("Cannot resolve canonical path for {}, symlink containment check will be skipped", path);
+            return null;
         }
     }
 
@@ -69,6 +96,11 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
 
     protected String getRootPath() {
         return rootPath;
+    }
+
+    // Exposed for testing the canonical-path containment check.
+    protected String getCanonicalRootPath() {
+        return canonicalRootPath;
     }
 
     protected FileSystemManager getManager() {
@@ -87,12 +119,17 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
 
     @Override
     public boolean itemExists(String path) {
+        // (C1) Unescape JCR-encoded characters first, consistent with getItemByPath and
+        // getChildren, so the containment check in getFile() sees the raw filesystem path.
         try {
-            final FileObject file = getFile(path.endsWith(JCR_CONTENT_SUFFIX) ? StringUtils.substringBeforeLast(
-                    path, JCR_CONTENT_SUFFIX) : path);
+            final String unescapedPath = Escaping.unescapeIllegalJcrChars(path);
+            final String fsPath = unescapedPath.endsWith(JCR_CONTENT_SUFFIX)
+                    ? StringUtils.substringBeforeLast(unescapedPath, JCR_CONTENT_SUFFIX)
+                    : unescapedPath;
+            final FileObject file = getFile(fsPath);
             return file.exists();
         } catch (FileSystemException e) {
-            LOGGER.warn("Unable to check file existence for path " + path, e);
+            LOGGER.warn("Unable to check file existence for path {}", path, e);
         }
         return false;
     }
@@ -104,7 +141,9 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
 
     @Override
     public Set<String> getSupportedNodeTypes() {
-        return Set.copyOf(SUPPORTED_NODE_TYPES);
+        // (M5) SUPPORTED_NODE_TYPES is already an unmodifiable constant; return it directly
+        // rather than creating a defensive copy on every call.
+        return SUPPORTED_NODE_TYPES;
     }
 
     @Override
@@ -149,6 +188,22 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         if (!isWithinRoot(resolved.getName().getPath())) {
             throw new FileSystemException("Path escapes configured root: " + path);
         }
+        // (C3) Symlink containment: also verify the OS-level canonical path so that a symlink
+        // planted inside the root cannot point outside it. Only applied when the file actually
+        // exists (non-existent paths have no real canonical target to check).
+        if (canonicalRootPath != null) {
+            final File backingFile = new File(resolved.getName().getPath());
+            if (backingFile.exists()) {
+                try {
+                    final String canonicalResolved = backingFile.getCanonicalPath();
+                    if (!isWithinCanonicalRoot(canonicalResolved)) {
+                        throw new FileSystemException("Path escapes configured root via symlink: " + path);
+                    }
+                } catch (IOException ex) {
+                    throw new FileSystemException("Cannot verify canonical path for: " + path, ex);
+                }
+            }
+        }
         return resolved;
     }
 
@@ -161,6 +216,16 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         }
         return resolvedPath.equals(rootPath)
                 || resolvedPath.startsWith(rootPath + FileSystem.SEPARATOR);
+    }
+
+    // Secondary containment check on the OS-canonical (symlink-resolved) path.
+    // Uses the same boundary logic as isWithinRoot to prevent sibling-prefix bypasses.
+    private boolean isWithinCanonicalRoot(String canonicalResolved) {
+        if (canonicalResolved == null || canonicalRootPath == null) {
+            return false;
+        }
+        return canonicalResolved.equals(canonicalRootPath)
+                || canonicalResolved.startsWith(canonicalRootPath + File.separator);
     }
 
     @Override
@@ -199,7 +264,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         }
         final List<String> children = new LinkedList<>();
         for (FileObject object : files) {
-            if (getSupportedNodeTypes().contains(getDataType(object))) {
+            if (SUPPORTED_NODE_TYPES.contains(getDataType(object))) {
                 children.add(Escaping.escapeIllegalJcrChars(object.getName().getBaseName()));
             }
         }
@@ -244,7 +309,7 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         }
         final List<ExternalData> children = new LinkedList<>();
         for (FileObject object : files) {
-            if (getSupportedNodeTypes().contains(getDataType(object))) {
+            if (SUPPORTED_NODE_TYPES.contains(getDataType(object))) {
                 children.add(getFile(object));
                 if (object.getType() == FileType.FILE) {
                     children.add(getFileContent(object.getContent()));
@@ -322,9 +387,21 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         return result;
     }
 
+    // (H7) Returns the JCR node type corresponding to the VFS file type.
+    // FILE -> jnt:file, FOLDER -> jnt:folder.
+    // IMAGINARY (non-existent) and other types are not valid states at this point in the
+    // call chain (callers check existence before calling getDataType); throw to surface the
+    // inconsistency rather than silently mis-classifying non-existent paths as folders.
     public String getDataType(FileObject fileObject) throws FileSystemException {
-        return fileObject.getType() == FileType.FILE ? Constants.JAHIANT_FILE
-                : Constants.JAHIANT_FOLDER;
+        if (fileObject.getType() == FileType.FILE) {
+            return Constants.JAHIANT_FILE;
+        } else if (fileObject.getType() == FileType.FOLDER) {
+            return Constants.JAHIANT_FOLDER;
+        } else {
+            // IMAGINARY or other unexpected VFS types
+            throw new FileSystemException("Unexpected VFS file type " + fileObject.getType()
+                    + " for path: " + fileObject.getName().getPath());
+        }
     }
 
     protected ExternalData getFileContent(final FileContent content) throws FileSystemException {
@@ -336,6 +413,9 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         final String jcrContentPath = path + FileSystem.SEPARATOR + Constants.JCR_CONTENT;
         final ExternalData externalData = new ExternalData(jcrContentPath, jcrContentPath, Constants.JAHIANT_RESOURCE, properties);
 
+        // NOTE (H4 — deferred): callers that receive this ExternalData are responsible for
+        // calling Binary.dispose() on the JahiaCloudDumpBinaryImpl instance stored in
+        // JCR_DATA to release the underlying VFS2 FileContent resource.
         final Map<String, Binary[]> binaryProperties = new HashMap<>(1);
         binaryProperties.put(Constants.JCR_DATA, new Binary[]{new JahiaCloudDumpBinaryImpl(content)});
         externalData.setBinaryProperties(binaryProperties);

@@ -38,7 +38,8 @@
 
 .cdp_description {
     margin-bottom: 1.75rem;
-    color: #666;
+    /* #595959 on white = 7.0:1 — replaces #666 (5.74:1) to meet SC 1.4.6 (AAA) */
+    color: #595959;
 }
 
 .cdp_form {
@@ -82,7 +83,8 @@
 .cdp_readOnly {
     font-family: monospace;
     font-size: 0.8125rem;
-    color: #525252;
+    /* #404040 on #f5f5f5 = 8.9:1 — replaces #525252 (~5.9:1) to meet SC 1.4.6 (AAA) */
+    color: #404040;
     background: #f5f5f5;
     border: 1px solid #767676;
     border-radius: 4px;
@@ -96,8 +98,8 @@
 
 .cdp_hint {
     font-size: 0.75rem;
-    /* #5c6370 on white ≈ 5.5:1 — replaces #888 which was 3.54:1 (fails at 12px) */
-    color: #5c6370;
+    /* #525252 on white = 7.4:1 — replaces #5c6370 (~5.5:1) to meet SC 1.4.6 (AAA) */
+    color: #525252;
     font-style: italic;
     /* Reset dd default margin */
     margin: 0;
