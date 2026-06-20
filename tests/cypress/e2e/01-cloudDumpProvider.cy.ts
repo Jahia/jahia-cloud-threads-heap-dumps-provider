@@ -28,7 +28,7 @@ describe('Jahia Cloud Dump Provider', () => {
     describe('GraphQL API', () => {
         it('returns settings fields via query', () => {
             cy.apollo({query: getSettings})
-                .its('data.cloudDumpSettings')
+                .its('data.cloudDump.settings')
                 .should(s => {
                     expect(s).to.have.property('mountPath');
                     expect(s).to.have.property('dumpPath');
@@ -37,13 +37,13 @@ describe('Jahia Cloud Dump Provider', () => {
 
         it('mountPath is a non-empty JCR path', () => {
             cy.apollo({query: getSettings})
-                .its('data.cloudDumpSettings.mountPath')
+                .its('data.cloudDump.settings.mountPath')
                 .should('match', /^\/.+/);
         });
 
         it('dumpPath equals hardcoded /var/tmp/cloud', () => {
             cy.apollo({query: getSettings})
-                .its('data.cloudDumpSettings.dumpPath')
+                .its('data.cloudDump.settings.dumpPath')
                 .should('eq', hardcodedDumpPath);
         });
 
@@ -52,7 +52,7 @@ describe('Jahia Cloud Dump Provider', () => {
                 mutation: saveSettings,
                 variables: {mountPath: '/sites/systemsite/files/cloud-dumps-test'}
             })
-                .its('data.cloudDumpSaveSettings')
+                .its('data.cloudDump.saveSettings')
                 .should('eq', true);
         });
 
@@ -63,7 +63,7 @@ describe('Jahia Cloud Dump Provider', () => {
                 variables: {mountPath: testPath}
             }).then(() =>
                 cy.apollo({query: getSettings})
-                    .its('data.cloudDumpSettings.mountPath')
+                    .its('data.cloudDump.settings.mountPath')
                     .should('eq', testPath)
             );
         });

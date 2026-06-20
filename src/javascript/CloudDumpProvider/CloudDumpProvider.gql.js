@@ -2,15 +2,19 @@ import {gql} from '@apollo/client';
 
 export const GET_SETTINGS = gql`
     query {
-        cloudDumpSettings {
-            mountPath
-            dumpPath
+        cloudDump {
+            settings {
+                mountPath
+                dumpPath
+            }
         }
     }
 `;
 
 export const SAVE_SETTINGS = gql`
     mutation CloudDumpSaveSettings($mountPath: String!) {
-        cloudDumpSaveSettings(mountPath: $mountPath)
+        cloudDump {
+            saveSettings(mountPath: $mountPath)
+        }
     }
 `;

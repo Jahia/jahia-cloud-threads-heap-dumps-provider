@@ -36,7 +36,7 @@ describe('CloudDumpProviderAdmin save state transitions', () => {
     // Apollo fires it once on resolution, whereas calling it on every useQuery() render
     // would loop (setMountPath -> re-render -> useQuery -> onCompleted -> ...).
     const mockQueryLoaded = () => {
-        useQuery.mockReturnValue({data: {cloudDumpSettings: settings}, loading: false});
+        useQuery.mockReturnValue({data: {cloudDump: {settings}}, loading: false});
     };
 
     beforeEach(() => {
