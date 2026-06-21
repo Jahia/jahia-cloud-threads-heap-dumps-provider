@@ -1,6 +1,8 @@
 query getSettings {
-    cloudDumpSettings {
-        mountPath
-        dumpPath
+    cloudDump {
+        settings {
+            mountPath
+            dumpPath
+        }
     }
 }

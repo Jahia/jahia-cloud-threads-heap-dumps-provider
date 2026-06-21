@@ -5,8 +5,8 @@ import {createUser, deleteUser, grantRoles} from '@jahia/cypress';
  * Regression tests for the fine-grained `heapDumpsAdmin` permission.
  *
  * These guard against the gate being silently removed or mismatched across the stack:
- *  - Backend: `@GraphQLRequiresPermission("heapDumpsAdmin")` on the `cloudDumpSettings` query
- *    and `cloudDumpSaveSettings` mutation, enforced on the JCR root node.
+ *  - Backend: `@GraphQLRequiresPermission("heapDumpsAdmin")` on the `cloudDump.settings` query
+ *    and `cloudDump.saveSettings` mutation, enforced on the JCR root node.
  *  - Data source: `JahiaCloudDumpDataSource.getPrivilegesNames()` checks
  *    `getNode("/").hasPermission("heapDumpsAdmin")` to expose dump files.
  *  - Frontend: `requiredPermission: 'heapDumpsAdmin'` in register.jsx gates the admin route
@@ -63,7 +63,7 @@ describe('Jahia Cloud Dump Provider — permission enforcement', () => {
         it('allows the gated query for a user granted only the module permission', () => {
             querySettingsAs(ALLOWED_USER).then((result: never) => {
                 expect(errorsOf(result), 'should have no errors').to.have.length(0);
-                const settings = (result as {data: {cloudDumpSettings: {mountPath: string; dumpPath: string}}}).data.cloudDumpSettings;
+                const settings = (result as {data: {cloudDump: {settings: {mountPath: string; dumpPath: string}}}}).data.cloudDump.settings;
                 expect(settings).to.have.property('mountPath');
                 expect(settings).to.have.property('dumpPath');
             });

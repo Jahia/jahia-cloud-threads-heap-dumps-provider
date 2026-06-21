@@ -30,14 +30,14 @@ export const CloudDumpProviderAdmin = () => {
     const {data, loading} = useQuery(GET_SETTINGS, {
         fetchPolicy: 'network-only',
         onCompleted: completed => {
-            const s = completed?.cloudDumpSettings;
+            const s = completed?.cloudDump?.settings;
             if (s) {
                 setMountPath(s.mountPath ?? '');
             }
         }
     });
 
-    const dumpPath = data?.cloudDumpSettings?.dumpPath ?? '';
+    const dumpPath = data?.cloudDump?.settings?.dumpPath ?? '';
     const jContentUrl = buildJContentUrl(mountPath);
 
     const [saveSettings, {loading: saving}] = useMutation(SAVE_SETTINGS);
@@ -46,7 +46,7 @@ export const CloudDumpProviderAdmin = () => {
         setSaveStatus(null);
         try {
             const result = await saveSettings({variables: {mountPath}});
-            const status = result.data?.cloudDumpSaveSettings ? 'success' : 'error';
+            const status = result.data?.cloudDump?.saveSettings ? 'success' : 'error';
             setSaveStatus(status);
             setTimeout(() => {
                 if (status === 'success') {
