@@ -30,10 +30,14 @@ import static org.mockito.Mockito.when;
  *   <li>a {@link RepositoryException} is caught and yields an empty array (fail-closed).</li>
  * </ul>
  *
- * <p><b>Stage-7 design candidate</b> (documented, not fixed here): this is an all-or-nothing,
- * server-wide read grant — a single {@code heapDumpsAdmin}-on-{@code /} check that disregards the
- * requested path, with no per-file/per-folder ACL and no per-site scoping. Heap dumps can contain
- * credentials/PII, so per-path privilege evaluation is a hardening candidate.
+ * <p><b>Accepted-risk decision (Stage 7):</b> this all-or-nothing, server-wide read grant — a single
+ * {@code heapDumpsAdmin}-on-{@code /} check that disregards the requested path, with no per-file/
+ * per-folder ACL and no per-site scoping — is <b>intentional and accepted</b> for the Jahia-Cloud
+ * operator context (dumps at a hardcoded internal path {@code /var/tmp/cloud}; both dumps and
+ * {@code heapDumpsAdmin} holders operator-controlled). Per-path privilege evaluation remains the
+ * hardening option if finer-grained access is ever needed. See the Javadoc on
+ * {@link JahiaCloudDumpDataSource#getPrivilegesNames(String, String)}. This test documents that
+ * intentional current behavior; do not change these assertions to "fix" the design.
  */
 public class GetPrivilegesNamesTest {
 

@@ -342,10 +342,28 @@ public class JahiaCloudDumpDataSource implements ExternalDataSource, ExternalDat
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * Returns the JCR read privileges for the current user over any mounted dump file.
+     *
+     * <p><b>All-or-nothing read model (INTENTIONAL / accepted for the Jahia-Cloud operator context).</b>
+     * Read access is gated by a single {@code hasPermission("heapDumpsAdmin")} check on the JCR root
+     * node {@code /}; the {@code path} argument is deliberately <b>ignored</b>. Any holder of
+     * {@code heapDumpsAdmin} therefore reads the entire mounted dump tree, with no per-file, per-folder,
+     * or per-site ACL. This is an accepted design decision, not an oversight: the dumps live at a
+     * hardcoded internal cloud path ({@code /var/tmp/cloud}) and both the dumps and the operators who
+     * hold {@code heapDumpsAdmin} are Jahia-Cloud operator-controlled. If finer-grained access is ever
+     * required (e.g. exposing dumps to a broader or per-site audience), per-path privilege evaluation
+     * would be the hardening path. Fails closed: any {@link RepositoryException} yields no privileges.
+     *
+     * <p>Behavior pinned by {@code GetPrivilegesNamesTest} (a characterization test documenting this
+     * intentional current behavior).
+     */
     @Override
     public String[] getPrivilegesNames(String username, String path) {
         String[] privileges = new String[0];
         try {
+            // (Security — accepted risk) heapDumpsAdmin-on-"/" gate; the requested path is intentionally
+            // ignored (server-wide, all-or-nothing read). See method Javadoc for the rationale.
             if (JCRSessionFactory.getInstance().getCurrentUserSession(Constants.EDIT_WORKSPACE).getNode("/").hasPermission("heapDumpsAdmin")) {
                 privileges = new String[1];
                 privileges[0] = Constants.JCR_READ_RIGHTS + "_" + Constants.EDIT_WORKSPACE;

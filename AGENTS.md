@@ -20,8 +20,10 @@ Jahia OSGi module that mounts Jahia cloud dump files (`/var/tmp/cloud`) as a JCR
 | `JahiaCloudDumpDataSource` | `ExternalDataSource`; bridges VFS2 `FileObject` to `ExternalData` |
 | `JahiaCloudDumpBinaryImpl` | `javax.jcr.Binary` implementation backed by VFS2 `FileContent` |
 | `JahiaCloudDumpProviderGraphQLExtensionsProvider` | Registers GraphQL extensions |
-| `JahiaCloudDumpProviderQueryExtension` | GraphQL settings query (`@GraphQLRequiresPermission("admin")`) |
-| `JahiaCloudDumpProviderMutationExtension` | GraphQL save mutation (`@GraphQLRequiresPermission("admin")`) |
+| `JahiaCloudDumpProviderQueryExtension` | Adds the `cloudDump` namespace field to root `Query`; returns `JahiaCloudDumpProviderQuery` |
+| `JahiaCloudDumpProviderQuery` | Nested `settings` query (`@GraphQLRequiresPermission("heapDumpsAdmin")`) |
+| `JahiaCloudDumpProviderMutationExtension` | Adds the `cloudDump` namespace field to root `Mutation`; returns `JahiaCloudDumpProviderMutation` |
+| `JahiaCloudDumpProviderMutation` | Nested `saveSettings` mutation (`@GraphQLRequiresPermission("heapDumpsAdmin")`) |
 
 `JahiaCloudDumpMountPointService` creates `new ExternalContentStoreProvider()` (not Spring-injected), sets `dynamicallyMounted = false`, calls `start()` / `stop()` on mount/remount.
 
@@ -29,12 +31,17 @@ VFS2 root: `StandardFileSystemManager.resolveFile("file:/var/tmp/cloud")`.
 
 ## GraphQL API
 
-| Operation | Name | Notes |
-|-----------|------|-------|
-| Query | `cloudDumpSettings` → `{mountPath, dumpPath}` | `dumpPath` is always `/var/tmp/cloud` |
-| Mutation | `cloudDumpSaveSettings(mountPath!)` → Boolean | Writes config + triggers remount |
+Operations are grouped under a single hierarchical `cloudDump` namespace container on
+root `Query`/`Mutation` (not flat root fields).
 
-Both require `admin` permission.
+| Operation | Path | Notes |
+|-----------|------|-------|
+| Query | `cloudDump { settings { mountPath, dumpPath } }` | `dumpPath` is always `/var/tmp/cloud`; settings type is `CloudDumpSettings` |
+| Mutation | `cloudDump { saveSettings(mountPath: String!) }` → Boolean | Validates mountPath then writes config + triggers remount |
+
+Both `settings` and `saveSettings` require the `heapDumpsAdmin` permission
+(`@GraphQLRequiresPermission("heapDumpsAdmin")`), granted via the module role
+`jahia-cloud-threads-heap-dumps-provider-administrator`.
 
 ## Admin UI
 
