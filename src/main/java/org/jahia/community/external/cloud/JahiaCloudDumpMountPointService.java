@@ -104,13 +104,21 @@ public class JahiaCloudDumpMountPointService implements ManagedService {
         return mountPath;
     }
 
+    // Factory seam for the ExternalContentStoreProvider. Extracted from remount() (behavior
+    // unchanged) so unit tests can substitute a test double: the real provider's start()/stop()
+    // require field-injected Jahia services and a running repository, which are unavailable in a
+    // plain unit test. Overriding this lets the remount stop-before-start ordering be asserted.
+    protected ExternalContentStoreProvider createProvider() {
+        return new ExternalContentStoreProvider();
+    }
+
     private synchronized void remount() {
         stopProvider();
         try {
             final JahiaCloudDumpDataSource dataSource = new JahiaCloudDumpDataSource(DUMP_PATH);
             dataSource.setRoot();
 
-            cloudDumpProvider = new ExternalContentStoreProvider();
+            cloudDumpProvider = createProvider();
             cloudDumpProvider.setUserManagerService(userManagerService);
             cloudDumpProvider.setGroupManagerService(groupManagerService);
             cloudDumpProvider.setSitesService(sitesService);
