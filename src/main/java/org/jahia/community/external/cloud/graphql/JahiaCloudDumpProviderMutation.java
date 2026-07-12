@@ -38,7 +38,9 @@ public class JahiaCloudDumpProviderMutation {
      * @param mountPath the proposed JCR mount path
      * @throws IllegalArgumentException if the path is invalid
      */
-    private static void validateMountPath(String mountPath) {
+    // Package-private (not private) so the security allowlist can be unit-tested directly
+    // for its rejection messages; the behavior is unchanged.
+    static void validateMountPath(String mountPath) {
         if (mountPath == null || mountPath.trim().isEmpty()) {
             throw new IllegalArgumentException("mountPath must not be null or blank");
         }
