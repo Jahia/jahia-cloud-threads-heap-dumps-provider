@@ -29,12 +29,17 @@ Navigate to **Administration → Cloud Dump Provider → Configuration** to view
 
 ## GraphQL API
 
+Operations are grouped under a single `cloudDump` namespace on the root `Query`/`Mutation`.
+Both require the `heapDumpsAdmin` permission.
+
 **Query:**
 ```graphql
 query {
-    cloudDumpSettings {
-        dumpPath    # hardcoded: /var/tmp/cloud
-        mountPath   # current JCR mount path
+    cloudDump {
+        settings {
+            dumpPath    # hardcoded: /var/tmp/cloud
+            mountPath   # current JCR mount path
+        }
     }
 }
 ```
@@ -42,6 +47,8 @@ query {
 **Mutation:**
 ```graphql
 mutation {
-    cloudDumpSaveSettings(mountPath: "/sites/systemsite/files/cloud-dumps")
+    cloudDump {
+        saveSettings(mountPath: "/sites/systemsite/files/cloud-dumps")
+    }
 }
 ```

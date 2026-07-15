@@ -67,6 +67,18 @@
       <version>${assertj.version}</version>
       <scope>test</scope>
     </dependency>
+    <!-- Mockito 5.x defaults to the inline mock maker (mockito-inline was merged into
+         mockito-core in 5.0), which is required to mockStatic(...) the Jahia core singleton
+         JCRSessionFactory (getPrivilegesNames read-auth test) and the final BundleUtils
+         utility class (saveSettings / validateMountPath ConfigurationAdmin test). The parent
+         BOM manages mockito.version=3.9.0, which lacks inline static mocking; pin 5.14.2 to
+         match the sibling modules in this initiative. -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>5.14.2</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <repositories>
     <repository>
