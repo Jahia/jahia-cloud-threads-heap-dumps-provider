@@ -1,6 +1,6 @@
 {
   "name": "@jahia/jahia-cloud-threads-heap-dumps-provider",
-  "version": "2.0.4-SNAPSHOT",
+  "version": "2.0.4",
   "scripts": {
     "build": "yarn webpack",
     "webpack": "webpack",
